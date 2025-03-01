@@ -1,0 +1,50 @@
+{
+  "name": "treetracr",
+  "version": "1.0.0",
+  "description": "A powerful JavaScript/TypeScript dependency analyzer that traces module relationships and identifies unused code",
+  "main": "index.js",
+  "type": "module",
+  "bin": {
+    "treetracr": "./index.js"
+  },
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": [
+    "static-analysis",
+    "dependencies",
+    "code-quality",
+    "unused-code",
+    "visualization",
+    "tree",
+    "imports",
+    "modules",
+    "typescript",
+    "javascript"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/billchurch/treetracr.git"
+  },
+  "bugs": {
+    "url": "https://github.com/billchurch/treetracr/issues"
+  },
+  "homepage": "https://github.com/billchurch/treetracr#readme",
+  "dependencies": {
+    "chalk": "^5.4.1",
+    "treeify": "^1.1.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "index.js",
+    "LICENSE",
+    "README.md"
+  ]
+}
