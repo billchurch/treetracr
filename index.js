@@ -11,14 +11,103 @@ import treeify from 'treeify'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
+/**
+ * Display help information and exit
+ */
+function displayHelp() {
+  console.log(`
+TreeTracr 🌲 - A JavaScript/TypeScript dependency analyzer
+
+USAGE:
+  treetracr [options] [directory] [entryPoint]
+
+OPTIONS:
+  -h, --help               Show this help message
+
+ARGUMENTS:
+  directory                Target directory to analyze (default: current directory)
+  entryPoint               Main entry file (default: detected from package.json or ./src/index.js)
+
+EXAMPLES:
+  treetracr                           # Analyze current directory with auto-detected entry point
+  treetracr ./my-project              # Analyze a specific directory
+  treetracr ./my-project ./src/app.js # Analyze with custom entry point
+  `)
+  process.exit(0)
+}
+
 const readdir = promisify(fs.readdir)
 const readFile = promisify(fs.readFile)
 const stat = promisify(fs.stat)
 
 // Command line arguments
 const args = process.argv.slice(2)
+
+// Check for help flags
+if (args.includes('-h') || args.includes('--help')) {
+  displayHelp()
+}
+
+// Process regular arguments if help wasn't requested
 const sourceDir = args[0] || '.'
-const entryPoint = args[1] || './src/index.js'
+
+/**
+ * Attempts to read and parse package.json from the given directory
+ */
+async function getPackageJson(directory) {
+  const packagePath = path.join(directory, 'package.json')
+  try {
+    const data = await readFile(packagePath, 'utf8')
+    return JSON.parse(data)
+  } catch (error) {
+    return null
+  }
+}
+
+/**
+ * Determine entry point based on package.json or fall back to default
+ */
+async function determineEntryPoint(directory, userProvidedEntry) {
+  // If user explicitly provided an entry point, use that
+  if (userProvidedEntry) {
+    return userProvidedEntry
+  }
+
+  // Try to read package.json
+  const packageJson = await getPackageJson(directory)
+  
+  if (packageJson) {
+    // Check for various entry point fields in priority order
+    const entryFields = ['main', 'module', 'browser', 'exports']
+    
+    for (const field of entryFields) {
+      if (packageJson[field]) {
+        // Handle exports object (could be complex)
+        if (field === 'exports' && typeof packageJson.exports === 'object') {
+          // Try to get the default export
+          if (packageJson.exports['.']) {
+            const defaultExport = packageJson.exports['.']
+            if (typeof defaultExport === 'string') {
+              return defaultExport
+            } else if (typeof defaultExport === 'object' && defaultExport.default) {
+              return defaultExport.default
+            } else if (typeof defaultExport === 'object' && defaultExport.import) {
+              return defaultExport.import
+            }
+          }
+          // If no default export or it's too complex, continue to next field
+          continue
+        }
+        
+        // For string values, use directly
+        return packageJson[field]
+      }
+    }
+  }
+  
+  // Fall back to default entry point
+  return './src/index.js'
+}
 
 // Patterns to identify imports/requires in files
 const IMPORT_PATTERNS = [
@@ -92,7 +181,7 @@ async function getImportsFromFile(filePath) {
 
         return Array.from(imports)
     } catch (error) {
-        console.error(chalk.red(`Error reading file ${filePath}:`), error.message)
+        console.error(chalk.red(`Error reading file $index.js:`), error.message)
         return []
     }
 }
@@ -228,6 +317,9 @@ async function traceDependenciesFromEntry(entryPath, visited = new Set()) {
  * Main function
  */
 async function main() {
+    // Determine entry point based on package.json or fall back to default/provided value
+    const entryPoint = await determineEntryPoint(sourceDir, args[1])
+    
     console.log(chalk.blue(`Scanning source directory: ${sourceDir}`))
     console.log(chalk.blue(`Using entry point: ${entryPoint}`))
 
