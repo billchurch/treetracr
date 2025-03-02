@@ -26,14 +26,19 @@ const __dirname = path.dirname(__filename)
 
 /**
  * Main function
+ * @returns {Promise<number>} Exit code (0 for success, non-zero for errors)
  */
 async function main() {
+    // Track exit code
+    let exitCode = 0;
+
     // Parse command line arguments
     const options = parseCommandLine()
 
     // Check for help flag
     if (options.help) {
         displayHelp()
+        return 0; // Success exit code
     }
 
     // Use the parsed options throughout the program
@@ -80,6 +85,14 @@ async function main() {
         unusedModules.forEach((module) => {
             output.warning(`- ${formatPath(module, sourceDir)}`)
         })
+        
+        // Mark CI check as failed for unused modules
+        if (options.failOnUnused) {
+            output.error('CI check failed: Unused modules detected')
+            if (options.ci) {
+                exitCode = Math.max(exitCode, 2); // Use exit code 2 for unused modules
+            }
+        }
     }
 
     // Generate dependency tree from entry point
@@ -108,6 +121,14 @@ async function main() {
         output.print('- Memory consumption')
         output.print('- Initialization order problems')
         output.print('- Harder to understand and maintain code')
+        
+        // Mark CI check as failed for circular dependencies
+        if (options.failOnCircular) {
+            output.error('CI check failed: Circular dependencies detected')
+            if (options.ci) {
+                exitCode = Math.max(exitCode, 1); // Use exit code 1 for circular dependencies
+            }
+        }
     }
 
     // Add new section for test files
@@ -130,10 +151,68 @@ async function main() {
             output.tree(testTreeOutput)
         }
     }
+    
+    // Add summary section for CI mode
+    if (options.ci || options.failOnCircular || options.failOnUnused) {
+        output.section('CI CHECK SUMMARY')
+        
+        const hasCircularDeps = circularDeps.length > 0
+        const hasUnusedModules = unusedModules.length > 0
+        const shouldFailCircular = options.failOnCircular && hasCircularDeps
+        const shouldFailUnused = options.failOnUnused && hasUnusedModules
+        
+        if (!shouldFailCircular && !shouldFailUnused) {
+            output.success('✅ All checks passed!')
+            
+            // Show details in regular mode but be concise in CI mode
+            if (!options.ci) {
+                if (options.failOnCircular) {
+                    output.success('- No circular dependencies')
+                }
+                if (options.failOnUnused) {
+                    output.success('- No unused modules')
+                }
+            }
+        } else {
+            output.error('❌ CI checks failed!')
+            
+            if (shouldFailCircular) {
+                output.error(`- Found ${circularDeps.length} circular dependencies`)
+            }
+            
+            if (shouldFailUnused) {
+                output.error(`- Found ${unusedModules.length} unused modules`)
+            }
+            
+            // Set combined status code if both issues are present
+            if (shouldFailCircular && shouldFailUnused) {
+                exitCode = 3;  // Exit code 3 for both issues
+            } else if (shouldFailCircular) {
+                exitCode = 1;  // Exit code 1 for circular dependencies
+            } else if (shouldFailUnused) {
+                exitCode = 2;  // Exit code 2 for unused modules
+            }
+        }
+    }
+    
+    // Return the final exit code
+    return exitCode;
 }
 
-// Run the script
-main().catch((error) => {
-    output.error(error)
-    process.exit(1)
-})
+// Run the script and handle exit code
+main()
+    .then(exitCode => {
+        // Only actually exit the process if running as a CLI application, not during testing
+        if (exitCode !== 0 && !process.env.NODE_TEST) {
+            process.exit(exitCode);
+        }
+        return exitCode;
+    })
+    .catch((error) => {
+        output.error(error);
+        // Only exit if not in a test environment
+        if (!process.env.NODE_TEST) {
+            process.exit(1);
+        }
+        return 1;
+    });

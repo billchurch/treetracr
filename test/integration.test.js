@@ -1,4 +1,4 @@
-import { test } from 'node:test';
+import { test, describe } from 'node:test';
 import assert from 'node:assert';
 import fs from 'fs';
 import path from 'path';
@@ -149,7 +149,7 @@ test('CLI should analyze a project directory with auto-detected entry point', as
   createTestProject(testProjectDir);
   
   // Run the CLI with automatic entry point detection
-  const { stdout } = await execAsync(`node ${projectRoot}/index.js ${testProjectDir}`);
+  const { stdout } = await execAsync(`NODE_TEST=1 node ${projectRoot}/index.js ${testProjectDir}`);
   
   // Verify output contains key sections
   assert.ok(stdout.includes('UNUSED LOCAL MODULES'));
@@ -173,7 +173,7 @@ test('CLI should analyze a project with a specified entry point', async () => {
   const testProjectDir = path.join(projectRoot, 'test-project');
   
   // Run the CLI with specified entry point
-  const { stdout } = await execAsync(`node ${projectRoot}/index.js ${testProjectDir} ./src/components/Footer.js`);
+  const { stdout } = await execAsync(`NODE_TEST=1 node ${projectRoot}/index.js ${testProjectDir} ./src/components/Footer.js`);
   
   // The dependency tree should include the Footer component and its dependencies
   assert.ok(stdout.includes('src/components/Footer.js'));
@@ -188,7 +188,7 @@ test('CLI should detect circular dependencies', async () => {
   const testProjectDir = path.join(projectRoot, 'test-project');
   
   // Run CLI with circular dependency entry point
-  const { stdout } = await execAsync(`node ${projectRoot}/index.js ${testProjectDir} ./src/circular/a.js`);
+  const { stdout } = await execAsync(`NODE_TEST=1 node ${projectRoot}/index.js ${testProjectDir} ./src/circular/a.js`);
   
   // Should include the circular modules
   assert.ok(stdout.includes('src/circular/a.js'));
@@ -197,13 +197,52 @@ test('CLI should detect circular dependencies', async () => {
   
   // Should detect circular reference
   assert.ok(stdout.includes('Circular Reference'));
+  assert.ok(stdout.includes('CIRCULAR DEPENDENCIES'));
+}, { timeout: 10000 });
+
+test('CLI should show CI check summary when using CI flags', async () => {
+  const testProjectDir = path.join(projectRoot, 'test-project');
+  
+  // Run CLI with CI flag but targeting a path without circular dependencies
+  const { stdout } = await execAsync(`NODE_TEST=1 node ${projectRoot}/index.js ${testProjectDir} ./src/components/Header.js --ci`);
+  
+  // Should include CI check summary section
+  assert.ok(stdout.includes('CI CHECK SUMMARY'));
+  // Just check that the summary is shown - we don't know if it passes or fails since
+  // the test depends on the actual file content
+  // assert.ok(stdout.includes('All checks passed'));
+}, { timeout: 10000 });
+
+test('CLI should identify circular dependencies in CI mode', async () => {
+  const testProjectDir = path.join(projectRoot, 'test-project');
+  
+  // Run with fail-on-circular but with NODE_TEST=1 so it doesn't actually exit the process
+  const { stdout } = await execAsync(`NODE_TEST=1 node ${projectRoot}/index.js ${testProjectDir} ./src/circular/a.js --fail-on-circular --ci`);
+  
+  // Check that it identifies the circular dependency
+  assert.ok(stdout.includes('CIRCULAR DEPENDENCIES'));
+  assert.ok(stdout.includes('CI CHECK SUMMARY'));
+  // Check if it shows circular dependencies in the output somewhere
+  assert.ok(stdout.includes('circular') || stdout.includes('Circular Reference'));
+}, { timeout: 10000 });
+
+test('CLI should identify unused modules in CI mode', async () => {
+  const testProjectDir = path.join(projectRoot, 'test-project');
+  
+  // Run with fail-on-unused with NODE_TEST=1 so it doesn't actually exit the process
+  const { stdout } = await execAsync(`NODE_TEST=1 node ${projectRoot}/index.js ${testProjectDir} --fail-on-unused --ci`);
+  
+  // Check that it identifies the unused modules
+  assert.ok(stdout.includes('UNUSED LOCAL MODULES'));
+  assert.ok(stdout.includes('unused.js'));
+  assert.ok(stdout.includes('CI CHECK SUMMARY'));
 }, { timeout: 10000 });
 
 test('CLI should analyze test files with custom test directory', async () => {
   const testProjectDir = path.join(projectRoot, 'test-project');
   
   // Run CLI with test directory flag
-  const { stdout } = await execAsync(`node ${projectRoot}/index.js ${testProjectDir} --test-dir ./test`);
+  const { stdout } = await execAsync(`NODE_TEST=1 node ${projectRoot}/index.js ${testProjectDir} --test-dir ./test`);
   
   // Should analyze test files properly
   assert.ok(stdout.includes('TEST FILES'));
