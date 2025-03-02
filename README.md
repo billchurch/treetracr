@@ -1,70 +1,14 @@
-# 🌲 TreeTracr - JavaScript/TypeScript Dependency Analyzer
+# TreeTracr 🌲
 
-TreeTracr is a powerful static analysis tool that helps you understand your JavaScript/TypeScript project's dependency structure, identify unused modules, and visualize import relationships.
-
-## New Feature: package.json Auto-detection
-
-TreeTracr now automatically detects your project's entry point from package.json, making it easier to analyze your codebase with minimal configuration.
-
-### How it works
-
-When you run TreeTracr without specifying an entry point, it will:
-
-1. Look for a package.json file in the target directory
-2. Check the following fields in priority order:
-    - `main` - Standard Node.js entry point
-    - `module` - ES modules entry point
-    - `browser` - Browser-targeted entry point
-    - `exports` - Modern conditional exports field
-
-For the `exports` field, TreeTracr intelligently handles its potentially complex structure, looking for:
-
-- The default export (`exports['.']`)
-- Object notation with `default` or `import` keys
-
-Only if no entry point can be determined from package.json will TreeTracr fall back to the default `./src/index.js`.
-
-## Usage
-
-```bash
-# Analyze current directory using entry point from package.json
-treetracr
-
-# Analyze a specific directory, using its package.json for entry point
-treetracr ./my-project
-
-# Override auto-detection with a specific entry point
-treetracr ./my-project ./src/app.js
-```
-
-## Example
-
-For a project with this package.json:
-
-```json
-{
-   "name": "my-awesome-project",
-   "version": "1.0.0",
-   "main": "dist/index.js",
-   "module": "src/index.js"
-}
-```
-
-Running `treetracr` will automatically use `src/index.js` as the entry point (since "module" has higher priority than "main").
-
-## Benefits
-
-- **Minimal configuration**: No need to manually specify entry points for standard projects
-- **Works with modern JS module patterns**: Handles various package.json configurations
-- **Still flexible**: You can always override with a command-line argument
+A JavaScript/TypeScript dependency analyzer that helps you visualize and understand your project's dependency structure.
 
 ## Features
 
-- **Dependency Visualization**: Generate clear, hierarchical trees of your codebase's import structure
-- **Unused Module Detection**: Identify "dead code" that isn't connected to your entry point
-- **Circular Dependency Detection**: Spot problematic circular references
-- **Reference Counting**: See how many modules depend on each file
-- **Flexible Configuration**: Analyze any directory with custom entry points
+- Analyzes JavaScript and TypeScript projects
+- Visualizes dependency trees from entry points
+- Identifies unused modules
+- Automatically detects and analyzes test files
+- Supports custom test directories
 
 ## Installation
 
@@ -72,11 +16,41 @@ Running `treetracr` will automatically use `src/index.js` as the entry point (si
 npm install -g treetracr
 ```
 
-Or use it directly with npx:
+## Usage
 
 ```bash
-npx treetracr
+treetracr [options] [directory] [entryPoint]
 ```
+
+### Options
+
+- `-h, --help`: Show help message
+- `-t, --test-dir <dir>`: Specify test directory (default: auto-detect)
+
+### Examples
+
+```bash
+# Analyze current directory with auto-detected entry point
+treetracr
+
+# Analyze a specific directory
+treetracr ./my-project
+
+# Analyze with custom entry point
+treetracr ./my-project ./src/app.js
+
+# Specify test directory explicitly
+treetracr --test-dir ./tests
+```
+
+## Test File Detection
+
+TreeTracr automatically detects test files based on common patterns:
+- Files with `.test.js` or `.spec.js` extensions
+- Files in `__tests__` directories
+- Files in directories named `test`
+
+To override automatic detection, use the `--test-dir` option.
 
 ## Example Output
 
@@ -99,7 +73,7 @@ src/index.js
 │   └── src/components/Footer.js
 │       └── src/utils/styling.js
 └── src/utils/helpers.js
-     └── Circular Reference
+    └── Circular Reference
 ```
 
 ## Why TreeTracr?

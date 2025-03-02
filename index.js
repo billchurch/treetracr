@@ -10,6 +10,45 @@ import treeify from 'treeify'
 // ES Modules don't have __dirname, so we create it
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
+ /**
+ * Parse command line arguments into a structured object
+ * @returns {Object} Parsed command line arguments
+ */
+function parseCommandLine() {
+  const args = process.argv.slice(2);
+  const result = {
+    help: false,
+    testDir: null,
+    sourceDir: '.',
+    entryPoint: null,
+    remainingArgs: []
+  };
+
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    
+    if (arg === '-h' || arg === '--help') {
+      result.help = true;
+    } else if ((arg === '-t' || arg === '--test-dir') && i + 1 < args.length) {
+      result.testDir = args[i + 1];
+      i++; // Skip the next argument
+    } else if (!arg.startsWith('-')) {
+      // Process positional arguments
+      if (!result.sourceDir || result.sourceDir === '.') {
+        result.sourceDir = arg;
+      } else if (!result.entryPoint) {
+        result.entryPoint = arg;
+      } else {
+        result.remainingArgs.push(arg);
+      }
+    } else {
+      // Unknown option
+      console.warn(`Warning: Unknown option ${arg}`);
+    }
+  }
+  
+  return result;
+}
 
 /**
  * Display help information and exit
@@ -23,6 +62,7 @@ USAGE:
 
 OPTIONS:
   -h, --help               Show this help message
+  -t, --test-dir <dir>     Specify test directory (default: auto-detect)
 
 ARGUMENTS:
   directory                Target directory to analyze (default: current directory)
@@ -32,6 +72,7 @@ EXAMPLES:
   treetracr                           # Analyze current directory with auto-detected entry point
   treetracr ./my-project              # Analyze a specific directory
   treetracr ./my-project ./src/app.js # Analyze with custom entry point
+  treetracr --test-dir ./tests        # Specify test directory explicitly
   `)
   process.exit(0)
 }
@@ -40,17 +81,15 @@ const readdir = promisify(fs.readdir)
 const readFile = promisify(fs.readFile)
 const stat = promisify(fs.stat)
 
-// Command line arguments
-const args = process.argv.slice(2)
+const parsedArgs = parseCommandLine();
 
 // Check for help flags
-if (args.includes('-h') || args.includes('--help')) {
+if (parsedArgs.help) {
   displayHelp()
 }
 
 // Process regular arguments if help wasn't requested
-const sourceDir = args[0] || '.'
-
+const sourceDir = parsedArgs.sourceDir;
 /**
  * Attempts to read and parse package.json from the given directory
  */
@@ -109,12 +148,24 @@ async function determineEntryPoint(directory, userProvidedEntry) {
   return './src/index.js'
 }
 
+  // Helper function to check if a file is a test
+  function isTestFile(filePath) {
+    return TEST_PATTERNS.some(pattern => pattern.test(filePath));
+  }
+
 // Patterns to identify imports/requires in files
 const IMPORT_PATTERNS = [
     /import\s+(?:[\w\s{},*]+from\s+)?['"]([\.\/][^'"]+)['"]/g,
     /require\s*\(\s*['"]([\.\/][^'"]+)['"]\s*\)/g,
     /import\s*\(['"]([\.\/][^'"]+)['"]\)/g  // Dynamic imports
 ]
+
+const TEST_PATTERNS = [
+    /\.test\.[jt]sx?$/,
+    /\.spec\.[jt]sx?$/,
+    /__tests__\//,
+    /\/test\//
+  ]
 
 // File extensions to analyze
 const JS_EXTENSIONS = ['.js', '.jsx', '.ts', '.tsx', '.mjs']
@@ -317,8 +368,20 @@ async function traceDependenciesFromEntry(entryPath, visited = new Set()) {
  * Main function
  */
 async function main() {
+    // Parse command line arguments
+    const options = parseCommandLine()
+
+    // Check for help flag
+    if (options.help) {
+        displayHelp()
+    }
+
+    // Use the parsed options throughout the program
+    const sourceDir = options.sourceDir
+    const testDir = options.testDir
+
     // Determine entry point based on package.json or fall back to default/provided value
-    const entryPoint = await determineEntryPoint(sourceDir, args[1])
+    const entryPoint = await determineEntryPoint(sourceDir, options.entryPoint)
     
     console.log(chalk.blue(`Scanning source directory: ${sourceDir}`))
     console.log(chalk.blue(`Using entry point: ${entryPoint}`))
@@ -327,14 +390,25 @@ async function main() {
     const files = await scanDirectory(sourceDir)
     console.log(chalk.white(`Found ${files.length} JavaScript/TypeScript files`))
 
+    // Separate test files
+    const testFiles = files.filter(file => {
+        if (testDir) {
+            // If test directory specified, use that
+            return file.includes(path.resolve(testDir))
+        }
+        // Otherwise use automatic detection
+        return isTestFile(file)
+    })
+    
+    const sourceFiles = files.filter(file => !testFiles.includes(file))
+    
     // Build dependency maps
     await buildDependencyMaps(files)
 
     // Trace dependencies from entry point
     const usedModules = await traceDependenciesFromEntry(entryPoint)
-
-    // Find truly unused modules
-    const unusedModules = files.filter(file => !usedModules.has(file))
+    // Find truly unused modules (excluding test files)
+    const unusedModules = sourceFiles.filter(file => !usedModules.has(file))
 
     console.log(chalk.yellow('\n============================================='))
     console.log(chalk.yellow('UNUSED LOCAL MODULES'))
@@ -365,8 +439,33 @@ async function main() {
     // Generate and display the tree
     const treeOutput = treeify.asTree(treeObj, true)
     console.log(treeOutput)
-}
 
+    // Add new section for test files
+    console.log(chalk.cyan('\n============================================='))
+    console.log(chalk.cyan('TEST FILES'))
+    console.log(chalk.cyan('============================================='))
+    
+    if (testFiles.length === 0) {
+        console.log(chalk.white('No test files detected.'))
+    } else {
+        console.log(chalk.white(`Found ${testFiles.length} test files:`))
+        testFiles.forEach((file) => {
+            console.log(chalk.white(`- ${formatPath(file)}`))
+        })
+        
+        // If a test file exists, show its dependencies
+        if (testFiles.length > 0) {
+            const sampleTest = testFiles[0]
+            console.log(chalk.white('\nTest Dependencies:'))
+            
+            const testTreeObj = {}
+            testTreeObj[formatPath(sampleTest)] = generateDependencyTreeObject(sampleTest)
+            
+            const testTreeOutput = treeify.asTree(testTreeObj, true)
+            console.log(testTreeOutput)
+        }
+    }
+}
 // Run the script
 main().catch((error) => {
     console.error(chalk.red('Error:'), error)
