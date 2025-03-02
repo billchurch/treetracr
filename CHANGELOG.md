@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.4.0](https://github.com/billchurch/treetracr/compare/v1.3.0...v1.4.0) (2025-03-02)
+
+
+### Features
+
+* add CI integration and CLI flags for error control ([4da793b](https://github.com/billchurch/treetracr/commit/4da793bba60797eb7975659053dc4bb3afbaa261))
+* detect and report unused package.json dependencies ([dd714b5](https://github.com/billchurch/treetracr/commit/dd714b5b55d32529927212e76eac532e1025dd4f))
+
 ## [1.3.0](https://github.com/billchurch/treetracr/compare/v1.2.0...v1.3.0) (2025-03-02)
 
 
