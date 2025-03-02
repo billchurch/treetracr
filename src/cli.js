@@ -11,6 +11,9 @@ export function parseCommandLine() {
     testDir: null,
     sourceDir: '.',
     entryPoint: null,
+    ci: false,
+    failOnCircular: false,
+    failOnUnused: false,
     remainingArgs: []
   };
 
@@ -22,6 +25,12 @@ export function parseCommandLine() {
     } else if ((arg === '-t' || arg === '--test-dir') && i + 1 < args.length) {
       result.testDir = args[i + 1];
       i++; // Skip the next argument
+    } else if (arg === '--ci') {
+      result.ci = true;
+    } else if (arg === '--fail-on-circular') {
+      result.failOnCircular = true;
+    } else if (arg === '--fail-on-unused') {
+      result.failOnUnused = true;
     } else if (!arg.startsWith('-')) {
       // Process positional arguments
       if (!result.sourceDir || result.sourceDir === '.') {
@@ -35,6 +44,12 @@ export function parseCommandLine() {
       // Unknown option
       output.warning(`Warning: Unknown option ${arg}`);
     }
+  }
+  
+  // If ci is true but neither failure mode specified, enable both
+  if (result.ci && !result.failOnCircular && !result.failOnUnused) {
+    result.failOnCircular = true;
+    result.failOnUnused = true;
   }
   
   return result;
@@ -53,6 +68,9 @@ USAGE:
 OPTIONS:
   -h, --help               Show this help message
   -t, --test-dir <dir>     Specify test directory (default: auto-detect)
+  --ci                     Enable CI mode (exits with error if issues found)
+  --fail-on-circular       Exit with error code if circular dependencies found
+  --fail-on-unused         Exit with error code if unused modules found
 
 ARGUMENTS:
   directory                Target directory to analyze (default: current directory)
@@ -63,12 +81,15 @@ FEATURES:
   - Unused Modules         Identifies modules not imported in the dependency tree
   - Circular Dependencies  Detects and highlights circular dependencies in the codebase
   - Test Files             Analyzes test files separately
+  - CI Integration         Returns error codes for use in CI/CD pipelines
 
 EXAMPLES:
   treetracr                           # Analyze current directory with auto-detected entry point
   treetracr ./my-project              # Analyze a specific directory
   treetracr ./my-project ./src/app.js # Analyze with custom entry point
   treetracr --test-dir ./tests        # Specify test directory explicitly
+  treetracr --ci                      # Exit with error if circular dependencies or unused modules found
+  treetracr --fail-on-circular        # Exit with error only if circular dependencies found
   `)
   process.exit(0)
 }

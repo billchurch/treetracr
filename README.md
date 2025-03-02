@@ -27,6 +27,9 @@ treetracr [options] [directory] [entryPoint]
 
 - `-h, --help`: Show help message
 - `-t, --test-dir <dir>`: Specify test directory (default: auto-detect)
+- `--ci`: Enable CI mode (exits with error if issues found)
+- `--fail-on-circular`: Exit with error code if circular dependencies found
+- `--fail-on-unused`: Exit with error code if unused modules found
 
 ### Examples
 
@@ -42,6 +45,36 @@ treetracr ./my-project ./src/app.js
 
 # Specify test directory explicitly
 treetracr --test-dir ./tests
+
+# For use in CI/CD pipelines
+treetracr --ci
+
+# Only fail on circular dependencies
+treetracr --fail-on-circular
+```
+
+### CI/CD Integration
+
+TreeTracr can be used in CI/CD pipelines to enforce code quality standards:
+
+```yaml
+# GitHub Actions example
+jobs:
+  dependency-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - run: npm install -g treetracr
+      - name: Check dependencies
+        run: treetracr --ci
+        # Will exit with:
+        # - Code 0: No issues found
+        # - Code 1: Circular dependencies found
+        # - Code 2: Unused modules found  
+        # - Code 3: Both issues found
 ```
 
 ## Test File Detection
@@ -167,6 +200,28 @@ Found 6 test files:
 Test Dependencies:
 └─ tests/crypto-utils.test.js
    └─ app/crypto-utils.js [ref: 2]
+
+   ╭──────────────────────╮
+   │                      │
+   │   CI CHECK SUMMARY   │
+   │                      │
+   ╰──────────────────────╯
+
+✅ All checks passed!
+```
+
+CI mode with failures would look like:
+
+```bash
+   ╭──────────────────────╮
+   │                      │
+   │   CI CHECK SUMMARY   │
+   │                      │
+   ╰──────────────────────╯
+
+❌ CI checks failed!
+- Found 3 circular dependencies
+- Found 2 unused modules
 ```
 
 ## Why TreeTracr?
@@ -175,6 +230,7 @@ Test Dependencies:
 - **Codebase Understanding**: Quickly grasp how modules relate to each other
 - **Dependency Management**: Identify complex dependency chains and circular dependencies
 - **Code Quality**: Improve your codebase by detecting and resolving circular dependencies
+- **CI/CD Integration**: Enforce code quality standards in your build pipelines
 - **Onboarding Tool**: Help new team members understand the codebase structure
 
 ## Contributing
