@@ -10,7 +10,8 @@ import {
     buildDependencyMaps, 
     traceDependenciesFromEntry, 
     isTestFile, 
-    detectCircularDependencies
+    detectCircularDependencies,
+    checkUnusedPackageDependencies
 } from './src/analyzer.js'
 import { 
     formatPath, 
@@ -131,6 +132,29 @@ async function main() {
         }
     }
 
+    // Add section for unused package dependencies
+    output.section('UNUSED PACKAGE DEPENDENCIES')
+    
+    // Check for unused dependencies in package.json
+    const unusedDeps = await checkUnusedPackageDependencies(sourceDir)
+    
+    if (unusedDeps.size === 0) {
+        output.success('No unused package.json dependencies found!')
+    } else {
+        output.warning(`Found ${unusedDeps.size} unused package.json dependencies:`)
+        Array.from(unusedDeps).forEach((dep) => {
+            output.warning(`- ${dep}`)
+        })
+        
+        // Mark CI check as failed for unused package dependencies
+        if (options.failOnUnusedPackageDeps) {
+            output.error('CI check failed: Unused package dependencies detected')
+            if (options.ci) {
+                exitCode = Math.max(exitCode, 4); // Use exit code 4 for unused package dependencies
+            }
+        }
+    }
+    
     // Add new section for test files
     output.section('TEST FILES')
     
@@ -153,15 +177,17 @@ async function main() {
     }
     
     // Add summary section for CI mode
-    if (options.ci || options.failOnCircular || options.failOnUnused) {
+    if (options.ci || options.failOnCircular || options.failOnUnused || options.failOnUnusedPackageDeps) {
         output.section('CI CHECK SUMMARY')
         
         const hasCircularDeps = circularDeps.length > 0
         const hasUnusedModules = unusedModules.length > 0
+        const hasUnusedPackageDeps = unusedDeps.size > 0
         const shouldFailCircular = options.failOnCircular && hasCircularDeps
         const shouldFailUnused = options.failOnUnused && hasUnusedModules
+        const shouldFailUnusedPackageDeps = options.failOnUnusedPackageDeps && hasUnusedPackageDeps
         
-        if (!shouldFailCircular && !shouldFailUnused) {
+        if (!shouldFailCircular && !shouldFailUnused && !shouldFailUnusedPackageDeps) {
             output.success('✅ All checks passed!')
             
             // Show details in regular mode but be concise in CI mode
@@ -171,6 +197,9 @@ async function main() {
                 }
                 if (options.failOnUnused) {
                     output.success('- No unused modules')
+                }
+                if (options.failOnUnusedPackageDeps) {
+                    output.success('- No unused package dependencies')
                 }
             }
         } else {
@@ -184,9 +213,19 @@ async function main() {
                 output.error(`- Found ${unusedModules.length} unused modules`)
             }
             
-            // Set combined status code if both issues are present
-            if (shouldFailCircular && shouldFailUnused) {
-                exitCode = 3;  // Exit code 3 for both issues
+            if (shouldFailUnusedPackageDeps) {
+                output.error(`- Found ${unusedDeps.size} unused package dependencies`)
+            }
+            
+            // Determine exit code based on combination of failures
+            if (shouldFailUnusedPackageDeps) {
+                if (shouldFailCircular || shouldFailUnused) {
+                    exitCode = 7;  // Exit code 7 for all issues
+                } else {
+                    exitCode = 4;  // Exit code 4 for unused package dependencies
+                }
+            } else if (shouldFailCircular && shouldFailUnused) {
+                exitCode = 3;  // Exit code 3 for both circular and unused modules
             } else if (shouldFailCircular) {
                 exitCode = 1;  // Exit code 1 for circular dependencies
             } else if (shouldFailUnused) {

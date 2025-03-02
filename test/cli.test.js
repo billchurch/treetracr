@@ -17,6 +17,7 @@ test('parseCommandLine should handle empty arguments', () => {
     ci: false,
     failOnCircular: false,
     failOnUnused: false,
+    failOnUnusedPackageDeps: false,
     remainingArgs: []
   });
 });
@@ -59,6 +60,7 @@ test('parseCommandLine should handle CI mode flag', () => {
   assert.strictEqual(result.ci, true);
   assert.strictEqual(result.failOnCircular, true);
   assert.strictEqual(result.failOnUnused, true);
+  assert.strictEqual(result.failOnUnusedPackageDeps, true);
 });
 
 // Test for fail-on-circular flag
@@ -79,13 +81,24 @@ test('parseCommandLine should handle fail-on-unused flag', () => {
   assert.strictEqual(result.failOnUnused, true);
 });
 
+// Test for fail-on-unused-deps flag
+test('parseCommandLine should handle fail-on-unused-deps flag', () => {
+  process.argv = ['node', 'index.js', '--fail-on-unused-deps'];
+  const result = parseCommandLine();
+  assert.strictEqual(result.ci, false);
+  assert.strictEqual(result.failOnCircular, false);
+  assert.strictEqual(result.failOnUnused, false);
+  assert.strictEqual(result.failOnUnusedPackageDeps, true);
+});
+
 // Test for combined CI flags
 test('parseCommandLine should handle combined CI flags', () => {
-  process.argv = ['node', 'index.js', '--ci', '--fail-on-circular', '--fail-on-unused'];
+  process.argv = ['node', 'index.js', '--ci', '--fail-on-circular', '--fail-on-unused', '--fail-on-unused-deps'];
   const result = parseCommandLine();
   assert.strictEqual(result.ci, true);
   assert.strictEqual(result.failOnCircular, true);
   assert.strictEqual(result.failOnUnused, true);
+  assert.strictEqual(result.failOnUnusedPackageDeps, true);
 });
 
 // Restore original argv after tests

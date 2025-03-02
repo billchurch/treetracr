@@ -8,6 +8,7 @@ A JavaScript/TypeScript dependency analyzer that helps you visualize and underst
 - Visualizes dependency trees from entry points
 - Identifies unused modules
 - Detects and highlights circular dependencies
+- Identifies unused package.json dependencies
 - Automatically detects and analyzes test files
 - Supports custom test directories
 
@@ -30,6 +31,7 @@ treetracr [options] [directory] [entryPoint]
 - `--ci`: Enable CI mode (exits with error if issues found)
 - `--fail-on-circular`: Exit with error code if circular dependencies found
 - `--fail-on-unused`: Exit with error code if unused modules found
+- `--fail-on-unused-deps`: Exit with error code if unused package.json dependencies found
 
 ### Examples
 
@@ -74,7 +76,9 @@ jobs:
         # - Code 0: No issues found
         # - Code 1: Circular dependencies found
         # - Code 2: Unused modules found  
-        # - Code 3: Both issues found
+        # - Code 3: Both circular dependencies and unused modules found
+        # - Code 4: Unused package dependencies found
+        # - Code 7: All issues found
 ```
 
 ## Test File Detection
@@ -183,6 +187,16 @@ Found 2 unused local modules:
 
 No circular dependencies detected!
 
+   ╭──────────────────────────────╮
+   │                              │
+   │   UNUSED PACKAGE DEPENDENCIES   │
+   │                              │
+   ╰──────────────────────────────╯
+
+Found 2 unused package.json dependencies:
+- some-unused-package
+- another-unused-package
+
    ╭────────────────╮
    │                │
    │   TEST FILES   │
@@ -222,6 +236,7 @@ CI mode with failures would look like:
 ❌ CI checks failed!
 - Found 3 circular dependencies
 - Found 2 unused modules
+- Found 2 unused package dependencies
 ```
 
 ## Why TreeTracr?

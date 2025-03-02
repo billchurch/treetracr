@@ -14,6 +14,7 @@ export function parseCommandLine() {
     ci: false,
     failOnCircular: false,
     failOnUnused: false,
+    failOnUnusedPackageDeps: false,
     remainingArgs: []
   };
 
@@ -31,6 +32,8 @@ export function parseCommandLine() {
       result.failOnCircular = true;
     } else if (arg === '--fail-on-unused') {
       result.failOnUnused = true;
+    } else if (arg === '--fail-on-unused-deps') {
+      result.failOnUnusedPackageDeps = true;
     } else if (!arg.startsWith('-')) {
       // Process positional arguments
       if (!result.sourceDir || result.sourceDir === '.') {
@@ -46,10 +49,11 @@ export function parseCommandLine() {
     }
   }
   
-  // If ci is true but neither failure mode specified, enable both
-  if (result.ci && !result.failOnCircular && !result.failOnUnused) {
+  // If ci is true but no failure modes specified, enable all failure modes
+  if (result.ci && !result.failOnCircular && !result.failOnUnused && !result.failOnUnusedPackageDeps) {
     result.failOnCircular = true;
     result.failOnUnused = true;
+    result.failOnUnusedPackageDeps = true;
   }
   
   return result;
@@ -71,6 +75,7 @@ OPTIONS:
   --ci                     Enable CI mode (exits with error if issues found)
   --fail-on-circular       Exit with error code if circular dependencies found
   --fail-on-unused         Exit with error code if unused modules found
+  --fail-on-unused-deps    Exit with error code if unused package.json dependencies found
 
 ARGUMENTS:
   directory                Target directory to analyze (default: current directory)
