@@ -7,6 +7,7 @@ A JavaScript/TypeScript dependency analyzer that helps you visualize and underst
 - Analyzes JavaScript and TypeScript projects
 - Visualizes dependency trees from entry points
 - Identifies unused modules
+- Detects and highlights circular dependencies
 - Automatically detects and analyzes test files
 - Supports custom test directories
 
@@ -73,14 +74,26 @@ src/index.js
 │   └── src/components/Footer.js
 │       └── src/utils/styling.js
 └── src/utils/helpers.js
-    └── Circular Reference
+    └── ⚠️ Circular Reference
+
+=============================================
+CIRCULAR DEPENDENCIES
+=============================================
+Found 1 circular dependency:
+1. src/utils/helpers.js -> src/utils/formatting.js -> src/utils/helpers.js
+
+Circular dependencies can cause issues with:
+- Memory consumption
+- Initialization order problems
+- Harder to understand and maintain code
 ```
 
 ## Why TreeTracr?
 
 - **Refactoring Aid**: Confidently remove unused code
 - **Codebase Understanding**: Quickly grasp how modules relate to each other
-- **Dependency Management**: Identify complex dependency chains
+- **Dependency Management**: Identify complex dependency chains and circular dependencies
+- **Code Quality**: Improve your codebase by detecting and resolving circular dependencies
 - **Onboarding Tool**: Help new team members understand the codebase structure
 
 ## Contributing

@@ -46,6 +46,6 @@ test('TEST_PATTERNS should identify test files', () => {
 });
 
 test('JS_EXTENSIONS should include common JavaScript and TypeScript extensions', () => {
-  const expectedExtensions = ['.js', '.jsx', '.ts', '.tsx', '.mjs'];
+  const expectedExtensions = ['.js', '.jsx', '.ts', '.tsx', '.mjs', '.jest'];
   assert.deepStrictEqual(JS_EXTENSIONS, expectedExtensions);
 });

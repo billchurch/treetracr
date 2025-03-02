@@ -58,6 +58,12 @@ ARGUMENTS:
   directory                Target directory to analyze (default: current directory)
   entryPoint               Main entry file (default: detected from package.json or ./src/index.js)
 
+FEATURES:
+  - Dependency Tree        Visualizes module dependencies from entry point
+  - Unused Modules         Identifies modules not imported in the dependency tree
+  - Circular Dependencies  Detects and highlights circular dependencies in the codebase
+  - Test Files             Analyzes test files separately
+
 EXAMPLES:
   treetracr                           # Analyze current directory with auto-detected entry point
   treetracr ./my-project              # Analyze a specific directory
