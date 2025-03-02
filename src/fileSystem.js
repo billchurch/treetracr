@@ -1,8 +1,8 @@
 import fs from 'fs'
 import path from 'path'
 import { promisify } from 'util'
-import chalk from 'chalk'
 import { JS_EXTENSIONS, IGNORE_DIRS } from './constants.js'
+import { output } from './output.js'
 
 export const readdir = promisify(fs.readdir)
 export const readFile = promisify(fs.readFile)
@@ -105,7 +105,7 @@ export async function scanDirectory(dirPath) {
             }
         }
     } catch (error) {
-        console.error(chalk.red(`Error scanning directory ${absPath}:`), error.message)
+        output.error(`Error scanning directory ${absPath}: ${error.message}`)
     }
 
     return files

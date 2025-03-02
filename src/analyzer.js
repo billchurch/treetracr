@@ -1,8 +1,8 @@
 import fs from 'fs'
 import path from 'path'
-import chalk from 'chalk'
 import { IMPORT_PATTERNS, TEST_PATTERNS, JS_EXTENSIONS } from './constants.js'
 import { readFile } from './fileSystem.js'
+import { output } from './output.js'
 
 // Store file dependencies
 export const moduleDependencies = new Map()
@@ -63,7 +63,7 @@ export async function getImportsFromFile(filePath) {
 
         return Array.from(imports)
     } catch (error) {
-        console.error(chalk.red(`Error reading file ${filePath}:`), error.message)
+        output.error(`Error reading file ${filePath}: ${error.message}`)
         return []
     }
 }
