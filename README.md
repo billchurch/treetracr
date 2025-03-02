@@ -187,15 +187,14 @@ Found 2 unused local modules:
 
 No circular dependencies detected!
 
-   ╭──────────────────────────────╮
-   │                              │
+   ╭─────────────────────────────────╮
+   │                                 │
    │   UNUSED PACKAGE DEPENDENCIES   │
-   │                              │
-   ╰──────────────────────────────╯
+   │                                 │
+   ╰─────────────────────────────────╯
 
-Found 2 unused package.json dependencies:
-- some-unused-package
-- another-unused-package
+Found 1 unused package.json dependencies:
+- fake
 
    ╭────────────────╮
    │                │
@@ -214,14 +213,6 @@ Found 6 test files:
 Test Dependencies:
 └─ tests/crypto-utils.test.js
    └─ app/crypto-utils.js [ref: 2]
-
-   ╭──────────────────────╮
-   │                      │
-   │   CI CHECK SUMMARY   │
-   │                      │
-   ╰──────────────────────╯
-
-✅ All checks passed!
 ```
 
 CI mode with failures would look like:
