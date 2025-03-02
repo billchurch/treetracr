@@ -1,7 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import { IMPORT_PATTERNS, TEST_PATTERNS, JS_EXTENSIONS } from './constants.js'
-import { readFile } from './fileSystem.js'
+import { readFile, getPackageJson } from './fileSystem.js'
 import { output } from './output.js'
 
 // Store file dependencies
@@ -10,6 +10,8 @@ export const moduleDependencies = new Map()
 export const moduleReferences = new Map()
 // Store circular dependencies
 export const circularDependencies = new Map()
+// Store unused package.json dependencies
+export const unusedPackageDependencies = new Set()
 
 /**
  * Normalize a path to handle different import styles
@@ -163,4 +165,67 @@ export async function traceDependenciesFromEntry(entryPath, sourceDir, visited =
  */
 export function isTestFile(filePath) {
     return TEST_PATTERNS.some(pattern => pattern.test(filePath));
+}
+
+/**
+ * Check if dependencies in package.json are actually used in the source files
+ * @param {string} sourceDir - Directory to analyze
+ * @returns {Promise<Set<string>>} - Set of unused dependencies
+ */
+export async function checkUnusedPackageDependencies(sourceDir) {
+    // Clear the set of unused dependencies
+    unusedPackageDependencies.clear()
+    
+    // Get package.json
+    const packageJson = await getPackageJson(sourceDir)
+    if (!packageJson || !packageJson.dependencies) {
+        return unusedPackageDependencies
+    }
+    
+    // Get all dependencies from package.json
+    const dependencies = Object.keys(packageJson.dependencies)
+    
+    // Get all content from source files to check for imports
+    const files = Array.from(moduleDependencies.keys())
+    const allContent = await Promise.all(
+        files.map(async file => {
+            try {
+                return await readFile(file, 'utf8')
+            } catch (error) {
+                output.error(`Error reading file ${file}: ${error.message}`)
+                return ''
+            }
+        })
+    )
+    
+    // Join all content for simpler checking
+    const combinedContent = allContent.join('\n')
+    
+    // Check each dependency
+    for (const dependency of dependencies) {
+        // Different patterns to match dependencies
+        const importPatterns = [
+            // ES6 named imports
+            new RegExp(`import\\s+(?:[\\w\\s{},*]+from\\s+)?['"]${dependency}(?:[\\w\\s-./]*)['"]`, 'g'),
+            // ES6 default imports
+            new RegExp(`import\\s+[\\w\\s]+\\s+from\\s+['"]${dependency}(?:[\\w\\s-./]*)['"]`, 'g'),
+            // ES6 namespace imports
+            new RegExp(`import\\s+\\*\\s+as\\s+[\\w\\s]+\\s+from\\s+['"]${dependency}(?:[\\w\\s-./]*)['"]`, 'g'),
+            // CommonJS require
+            new RegExp(`require\\s*\\(\\s*['"]${dependency}(?:[\\w\\s-./]*)['"]\\s*\\)`, 'g'),
+            // Dynamic imports
+            new RegExp(`import\\s*\\(['"]${dependency}(?:[\\w\\s-./]*)['"]\\)`, 'g'),
+            // Package references in comments or strings
+            new RegExp(`['"]${dependency}(?:[\\w\\s-./]*)['"]`, 'g')
+        ]
+        
+        // Check if dependency is used in any file
+        const isUsed = importPatterns.some(pattern => pattern.test(combinedContent))
+        
+        if (!isUsed) {
+            unusedPackageDependencies.add(dependency)
+        }
+    }
+    
+    return unusedPackageDependencies
 }
