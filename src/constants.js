@@ -13,7 +13,7 @@ export const TEST_PATTERNS = [
 ]
 
 // File extensions to analyze
-export const JS_EXTENSIONS = ['.js', '.jsx', '.ts', '.tsx', '.mjs']
+export const JS_EXTENSIONS = ['.js', '.jsx', '.ts', '.tsx', '.mjs', '.jest']
 
 // Directories to ignore
 export const IGNORE_DIRS = ['node_modules', 'dist', 'build', '.git', 'coverage']
