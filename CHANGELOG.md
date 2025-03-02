@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.0](https://github.com/billchurch/treetracr/compare/v1.2.0...v1.3.0) (2025-03-02)
+
+
+### Features
+
+* add '.jest' extension to JS_EXTENSIONS ([51c2b97](https://github.com/billchurch/treetracr/commit/51c2b976ac0e0c1363a6d90bc152f1a12ff726db))
+* detect and visualize circular dependencies ([c20cf10](https://github.com/billchurch/treetracr/commit/c20cf1060951738b6e2c43d25b29631bf7d319b4))
+
 ## [1.2.0](https://github.com/billchurch/treetracr/compare/v1.1.0...v1.2.0) (2025-03-02)
 
 
