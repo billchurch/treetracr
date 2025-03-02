@@ -9,11 +9,14 @@ import { scanDirectory, determineEntryPoint } from './src/fileSystem.js'
 import { 
     buildDependencyMaps, 
     traceDependenciesFromEntry, 
-    isTestFile 
+    isTestFile, 
+    detectCircularDependencies
 } from './src/analyzer.js'
 import { 
     formatPath, 
-    generateDependencyTree 
+    generateDependencyTree,
+    getCircularDependencies,
+    treeCircularDependencies
 } from './src/visualizer.js'
 import { output } from './src/output.js'
 
@@ -89,6 +92,23 @@ async function main() {
     // Generate and display the tree
     const treeOutput = generateDependencyTree(absoluteEntryPath, sourceDir)
     output.tree(treeOutput)
+    
+    // Add section for circular dependencies
+    output.section('CIRCULAR DEPENDENCIES')
+    
+    const circularDeps = getCircularDependencies(sourceDir)
+    if (circularDeps.length === 0) {
+        output.success('No circular dependencies detected!')
+    } else {
+        output.warning(`Found ${circularDeps.length} circular dependencies:`)
+        circularDeps.forEach((cycle, index) => {
+            output.warning(`${index + 1}. ${cycle}`)
+        })
+        output.print('\nCircular dependencies can cause issues with:')
+        output.print('- Memory consumption')
+        output.print('- Initialization order problems')
+        output.print('- Harder to understand and maintain code')
+    }
 
     // Add new section for test files
     output.section('TEST FILES')

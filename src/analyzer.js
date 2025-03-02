@@ -8,6 +8,8 @@ import { output } from './output.js'
 export const moduleDependencies = new Map()
 // Store file references (which files import this file)
 export const moduleReferences = new Map()
+// Store circular dependencies
+export const circularDependencies = new Map()
 
 /**
  * Normalize a path to handle different import styles
@@ -84,6 +86,48 @@ export async function buildDependencyMaps(files) {
             moduleReferences.get(importPath).push(file)
         }
     }
+}
+
+/**
+ * Detect circular dependencies in the project
+ */
+export function detectCircularDependencies() {
+    const result = new Map()
+    
+    for (const [file, dependencies] of moduleDependencies.entries()) {
+        // For each file, check for circular dependencies
+        const visited = new Set()
+        const path = []
+        
+        function dfs(currentFile) {
+            if (path.includes(currentFile)) {
+                // Found a cycle
+                const cycle = [...path.slice(path.indexOf(currentFile)), currentFile]
+                const cycleKey = cycle.join(' -> ')
+                
+                if (!result.has(cycleKey)) {
+                    result.set(cycleKey, cycle)
+                }
+                return
+            }
+            
+            if (visited.has(currentFile)) return
+            
+            visited.add(currentFile)
+            path.push(currentFile)
+            
+            const deps = moduleDependencies.get(currentFile) || []
+            for (const dep of deps) {
+                dfs(dep)
+            }
+            
+            path.pop()
+        }
+        
+        dfs(file)
+    }
+    
+    return result
 }
 
 /**
