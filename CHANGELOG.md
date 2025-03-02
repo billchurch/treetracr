@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/billchurch/treetracr/compare/v1.1.0...v1.2.0) (2025-03-02)
+
+
+### Features
+
+* enhance output with boxen and ora ([9fd98c5](https://github.com/billchurch/treetracr/commit/9fd98c5f98093965b6a188e10e906d3077804115))
+
 ## [1.1.0](https://github.com/billchurch/treetracr/compare/v1.0.0...v1.1.0) (2025-03-02)
 
 
