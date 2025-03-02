@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 import path from 'path'
-import chalk from 'chalk'
 import { fileURLToPath } from 'url'
 
 // Import our modules
@@ -16,6 +15,7 @@ import {
     formatPath, 
     generateDependencyTree 
 } from './src/visualizer.js'
+import { output } from './src/output.js'
 
 // ES Modules don't have __dirname, so we create it
 const __filename = fileURLToPath(import.meta.url)
@@ -40,12 +40,12 @@ async function main() {
     // Determine entry point based on package.json or fall back to default/provided value
     const entryPoint = await determineEntryPoint(sourceDir, options.entryPoint)
     
-    console.log(chalk.blue(`Scanning source directory: ${sourceDir}`))
-    console.log(chalk.blue(`Using entry point: ${entryPoint}`))
+    output.info(`Scanning source directory: ${sourceDir}`)
+    output.info(`Using entry point: ${entryPoint}`)
 
     // Get all JS/TS files
     const files = await scanDirectory(sourceDir)
-    console.log(chalk.white(`Found ${files.length} JavaScript/TypeScript files`))
+    output.print(`Found ${files.length} JavaScript/TypeScript files`)
 
     // Separate test files
     const testFiles = files.filter(file => {
@@ -68,23 +68,19 @@ async function main() {
     // Find truly unused modules (excluding test files)
     const unusedModules = sourceFiles.filter(file => !usedModules.has(file))
 
-    console.log(chalk.yellow('\n============================================='))
-    console.log(chalk.yellow('UNUSED LOCAL MODULES'))
-    console.log(chalk.yellow('============================================='))
+    output.section('UNUSED LOCAL MODULES')
 
     if (unusedModules.length === 0) {
-        console.log(chalk.green('No unused local modules found!'))
+        output.success('No unused local modules found!')
     } else {
-        console.log(chalk.yellow(`Found ${unusedModules.length} unused local modules:`))
+        output.warning(`Found ${unusedModules.length} unused local modules:`)
         unusedModules.forEach((module) => {
-            console.log(chalk.yellow(`- ${formatPath(module, sourceDir)}`))
+            output.warning(`- ${formatPath(module, sourceDir)}`)
         })
     }
 
     // Generate dependency tree from entry point
-    console.log(chalk.green('\n============================================='))
-    console.log(chalk.green('DEPENDENCY TREE FROM ENTRY POINT'))
-    console.log(chalk.green('============================================='))
+    output.section('DEPENDENCY TREE FROM ENTRY POINT')
 
     const absoluteEntryPath = path.isAbsolute(entryPoint)
         ? entryPoint
@@ -92,34 +88,32 @@ async function main() {
 
     // Generate and display the tree
     const treeOutput = generateDependencyTree(absoluteEntryPath, sourceDir)
-    console.log(treeOutput)
+    output.tree(treeOutput)
 
     // Add new section for test files
-    console.log(chalk.cyan('\n============================================='))
-    console.log(chalk.cyan('TEST FILES'))
-    console.log(chalk.cyan('============================================='))
+    output.section('TEST FILES')
     
     if (testFiles.length === 0) {
-        console.log(chalk.white('No test files detected.'))
+        output.print('No test files detected.')
     } else {
-        console.log(chalk.white(`Found ${testFiles.length} test files:`))
+        output.print(`Found ${testFiles.length} test files:`)
         testFiles.forEach((file) => {
-            console.log(chalk.white(`- ${formatPath(file, sourceDir)}`))
+            output.print(`- ${formatPath(file, sourceDir)}`)
         })
         
         // If a test file exists, show its dependencies
         if (testFiles.length > 0) {
             const sampleTest = testFiles[0]
-            console.log(chalk.white('\nTest Dependencies:'))
+            output.print('\nTest Dependencies:')
             
             const testTreeOutput = generateDependencyTree(sampleTest, sourceDir)
-            console.log(testTreeOutput)
+            output.tree(testTreeOutput)
         }
     }
 }
 
 // Run the script
 main().catch((error) => {
-    console.error(chalk.red('Error:'), error)
+    output.error(error)
     process.exit(1)
 })

@@ -2,6 +2,8 @@
  * Parse command line arguments into a structured object
  * @returns {Object} Parsed command line arguments
  */
+import { output } from './output.js';
+
 export function parseCommandLine() {
   const args = process.argv.slice(2);
   const result = {
@@ -31,7 +33,7 @@ export function parseCommandLine() {
       }
     } else {
       // Unknown option
-      console.warn(`Warning: Unknown option ${arg}`);
+      output.warning(`Warning: Unknown option ${arg}`);
     }
   }
   
@@ -42,7 +44,7 @@ export function parseCommandLine() {
  * Display help information and exit
  */
 export function displayHelp() {
-  console.log(`
+  output.print(`
 TreeTracr 🌲 - A JavaScript/TypeScript dependency analyzer
 
 USAGE:
