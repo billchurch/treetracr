@@ -8,7 +8,10 @@
     "treetracr": "./index.js"
   },
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "test": "node --test",
+    "test:watch": "node --test --watch",
+    "prepare": "npm test"
   },
   "keywords": [
     "static-analysis",

@@ -1,12 +1,12 @@
-## 🌲 TreeTracr - JavaScript/TypeScript Dependency Analyzer
+# 🌲 TreeTracr - JavaScript/TypeScript Dependency Analyzer
 
 TreeTracr is a powerful static analysis tool that helps you understand your JavaScript/TypeScript project's dependency structure, identify unused modules, and visualize import relationships.
 
-### New Feature: package.json Auto-detection
+## New Feature: package.json Auto-detection
 
 TreeTracr now automatically detects your project's entry point from package.json, making it easier to analyze your codebase with minimal configuration.
 
-#### How it works:
+### How it works
 
 When you run TreeTracr without specifying an entry point, it will:
 
@@ -18,12 +18,13 @@ When you run TreeTracr without specifying an entry point, it will:
     - `exports` - Modern conditional exports field
 
 For the `exports` field, TreeTracr intelligently handles its potentially complex structure, looking for:
+
 - The default export (`exports['.']`)
 - Object notation with `default` or `import` keys
 
 Only if no entry point can be determined from package.json will TreeTracr fall back to the default `./src/index.js`.
 
-### Usage
+## Usage
 
 ```bash
 # Analyze current directory using entry point from package.json
@@ -36,7 +37,7 @@ treetracr ./my-project
 treetracr ./my-project ./src/app.js
 ```
 
-### Example
+## Example
 
 For a project with this package.json:
 
@@ -51,7 +52,7 @@ For a project with this package.json:
 
 Running `treetracr` will automatically use `src/index.js` as the entry point (since "module" has higher priority than "main").
 
-### Benefits
+## Benefits
 
 - **Minimal configuration**: No need to manually specify entry points for standard projects
 - **Works with modern JS module patterns**: Handles various package.json configurations
@@ -79,7 +80,7 @@ npx treetracr
 
 ## Example Output
 
-```
+```bash
 =============================================
 UNUSED LOCAL MODULES
 =============================================
