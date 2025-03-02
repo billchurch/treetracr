@@ -72,14 +72,15 @@ test('output.error should call console.error with red formatting', () => {
   assert.ok(global._consoleError[0].includes(testMessage));
 });
 
-test('output.section should print a formatted section header', () => {
+test('output.section should print a boxen-formatted section header', () => {
   const sectionTitle = 'Test Section';
   output.section(sectionTitle);
   
-  assert.strictEqual(global._consoleOutput.length, 3);
-  assert.ok(global._consoleOutput[0].includes('====='));
-  assert.ok(global._consoleOutput[1].includes(sectionTitle));
-  assert.ok(global._consoleOutput[2].includes('====='));
+  // Boxen outputs a single formatted string
+  assert.strictEqual(global._consoleOutput.length, 1);
+  assert.ok(global._consoleOutput[0].includes(sectionTitle));
+  // Check for boxen round border character
+  assert.ok(global._consoleOutput[0].includes('╭') || global._consoleOutput[0].includes('┌'));
 });
 
 test('output.tree should print tree output as is', () => {
@@ -88,4 +89,22 @@ test('output.tree should print tree output as is', () => {
   
   assert.strictEqual(global._consoleOutput.length, 1);
   assert.strictEqual(global._consoleOutput[0], treeOutput);
+});
+
+test('output.spinner should return an object with the correct methods', () => {
+  const spinnerText = 'Loading...';
+  const spinner = output.spinner(spinnerText);
+  
+  // Test that the spinner object has the expected methods
+  assert.strictEqual(typeof spinner.succeed, 'function');
+  assert.strictEqual(typeof spinner.fail, 'function');
+  assert.strictEqual(typeof spinner.update, 'function');
+  
+  // Test spinner methods (these will use the mocked console)
+  spinner.succeed('Task completed');
+  spinner.fail('Task failed');
+  spinner.update('Updating...');
+  
+  // We can't fully test ora's output since we're not mocking the ora library itself
+  // but we can verify our wrapper functions don't throw errors
 });

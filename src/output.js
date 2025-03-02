@@ -1,4 +1,6 @@
 import chalk from 'chalk'
+import boxen from 'boxen'
+import ora from 'ora'
 
 // Output abstraction layer
 export const output = {
@@ -11,13 +13,26 @@ export const output = {
   warning: (message) => console.log(chalk.yellow(message)),
   error: (message) => console.error(chalk.red('Error:'), message),
   
-  // Section headers
+  // Enhanced section with boxen
   section: (title) => {
-    console.log(chalk.cyan('\n============================================='))
-    console.log(chalk.cyan(title))
-    console.log(chalk.cyan('============================================='))
+    console.log(boxen(chalk.cyan(title), {
+      padding: 1,
+      margin: 1,
+      borderStyle: 'round',
+      borderColor: 'cyan'
+    }))
   },
   
   // Tree visualization
-  tree: (treeOutput) => console.log(treeOutput)
+  tree: (treeOutput) => console.log(treeOutput),
+  
+  // Progress spinner
+  spinner: (text) => {
+    const spinner = ora(text).start()
+    return {
+      succeed: (message) => spinner.succeed(message),
+      fail: (message) => spinner.fail(message),
+      update: (message) => spinner.text = message
+    }
+  }
 }
