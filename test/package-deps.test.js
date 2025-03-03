@@ -43,18 +43,18 @@ test('checkUnusedPackageDependencies should identify unused dependencies', async
   const indexPath = path.resolve('./test-pkg-deps/index.js');
   moduleDependencies.set(indexPath, []);
   
-  // Run the check
+  // Run the check and store the result
   const testDir = path.resolve('./test-pkg-deps');
-  await checkUnusedPackageDependencies(testDir);
+  const unused = await checkUnusedPackageDependencies(testDir);
   
   // Should identify two unused dependencies
-  assert.strictEqual(unusedPackageDependencies.size, 2);
-  assert.ok(unusedPackageDependencies.has('unused-dep'));
-  assert.ok(unusedPackageDependencies.has('yet-another-unused-dep'));
+  assert.strictEqual(unused.size, 2);
+  assert.ok(unused.has('unused-dep'));
+  assert.ok(unused.has('yet-another-unused-dep'));
   
   // Should not include used dependencies
-  assert.ok(!unusedPackageDependencies.has('used-dep'));
-  assert.ok(!unusedPackageDependencies.has('another-used-dep'));
+  assert.ok(!unused.has('used-dep'));
+  assert.ok(!unused.has('another-used-dep'));
 });
 
 test('checkUnusedPackageDependencies should handle missing package.json', async () => {

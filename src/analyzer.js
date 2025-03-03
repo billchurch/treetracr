@@ -192,33 +192,16 @@ export function isTestFile(filePath) {
  * @returns {Promise<Set<string>>} - Set of unused dependencies
  */
 export async function checkUnusedPackageDependencies(sourceDir) {
-    // Clear the set of unused dependencies
-    unusedPackageDependencies.clear()
-    
     // Get package.json
     const packageJson = await getPackageJson(sourceDir)
     if (!packageJson || !packageJson.dependencies) {
-        return unusedPackageDependencies
+        return new Set()
     }
     
     // Get all dependencies from package.json
     const dependencies = Object.keys(packageJson.dependencies)
     
-    // Get all content from source files to check for imports
-    const files = Array.from(moduleDependencies.keys())
-    const allContent = await Promise.all(
-        files.map(async file => {
-            try {
-                return await getCachedFileContent(file)
-            } catch (error) {
-                output.error(`Error reading file ${file}: ${error.message}`)
-                return ''
-            }
-        })
-    )
-    
-    // Join all content for simpler checking
-    const combinedContent = allContent.join('\n')
+    const usedDependencies = new Set()
     
     // Pattern templates
     const patternTemplates = [
@@ -230,17 +213,24 @@ export async function checkUnusedPackageDependencies(sourceDir) {
         dependency => new RegExp(`['"]${dependency}(?:[\\w\\s-./]*)['"]`, 'g')
     ]
     
-    for (const dependency of dependencies) {
-        // Compile patterns once per dependency
-        const patterns = patternTemplates.map(template => template(dependency))
-        const isUsed = patterns.some(pattern => pattern.test(combinedContent))
+    for (const file of moduleDependencies.keys()) {
+        const content = await getCachedFileContent(file)
         
-        if (!isUsed) {
-            unusedPackageDependencies.add(dependency)
+        for (const dependency of dependencies) {
+            if (!usedDependencies.has(dependency)) {
+                // Check if dependency is used in this file
+                const isUsed = patternTemplates.some(template => 
+                    template(dependency).test(content))
+                
+                if (isUsed) {
+                    usedDependencies.add(dependency)
+                }
+            }
         }
     }
     
-    return unusedPackageDependencies
+    // Unused = all dependencies minus used dependencies
+    return new Set(dependencies.filter(dep => !usedDependencies.has(dep)))
 }
 // Improved cache management
 const fileContentCache = new Map();
