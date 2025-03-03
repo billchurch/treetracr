@@ -1,6 +1,6 @@
 import fs from 'fs'
 import path from 'path'
-import { IMPORT_PATTERNS, TEST_PATTERNS, JS_EXTENSIONS } from './constants.js'
+import { MAX_CACHE_SIZE, IMPORT_PATTERNS, TEST_PATTERNS, JS_EXTENSIONS } from './constants.js'
 import { readFile, getPackageJson } from './fileSystem.js'
 import { output } from './output.js'
 
@@ -28,6 +28,8 @@ export function normalizePath(basePath, importPath) {
         for (const ext of JS_EXTENSIONS) {
             const indexPath = path.join(fullPath, `index${ext}`)
             if (fs.existsSync(indexPath)) {
+                // Pre-warm the cache for files we know exist
+                getCachedFileContent(indexPath).catch(() => {})
                 return indexPath
             }
         }
@@ -36,6 +38,8 @@ export function normalizePath(basePath, importPath) {
         for (const ext of JS_EXTENSIONS) {
             const withExt = `${fullPath}${ext}`
             if (fs.existsSync(withExt)) {
+                // Pre-warm the cache for files we know exist
+                getCachedFileContent(withExt).catch(() => {})
                 return withExt
             }
         }
@@ -53,7 +57,7 @@ export function normalizePath(basePath, importPath) {
  */
 export async function getImportsFromFile(filePath) {
     try {
-        const content = await readFile(filePath, 'utf8')
+        const content = await getCachedFileContent(filePath)
         const imports = new Set()
 
         for (const pattern of IMPORT_PATTERNS) {
@@ -71,7 +75,7 @@ export async function getImportsFromFile(filePath) {
 
         return Array.from(imports)
     } catch (error) {
-        output.error(`Error reading file ${filePath}: ${error.message}`)
+        output.error(`Error reading file $src/analyzer.js: ${error.message}`)
         return []
     }
 }
@@ -96,48 +100,59 @@ export async function buildDependencyMaps(files) {
 
 /**
  * Detect circular dependencies in the project
+ * @returns {Map<string, string[]>} - Map of circular dependencies
  */
+// Memoize the circular dependency detection
+let circularDepsCache = null;
+let lastDepsMapSize = 0;
+
 export function detectCircularDependencies() {
-    const result = new Map()
-    
-    for (const [file, dependencies] of moduleDependencies.entries()) {
-        // For each file, check for circular dependencies
-        const visited = new Set()
-        const path = []
-        
-        function dfs(currentFile) {
-            if (path.includes(currentFile)) {
-                // Found a cycle
-                const cycle = [...path.slice(path.indexOf(currentFile)), currentFile]
-                const cycleKey = cycle.join(' -> ')
-                
-                if (!result.has(cycleKey)) {
-                    result.set(cycleKey, cycle)
-                }
-                return
-            }
-            
-            if (visited.has(currentFile)) return
-            
-            visited.add(currentFile)
-            path.push(currentFile)
-            
-            const deps = moduleDependencies.get(currentFile) || []
-            for (const dep of deps) {
-                dfs(dep)
-            }
-            
-            path.pop()
-        }
-        
-        dfs(file)
+    // Return cached result if dependency map hasn't changed
+    if (circularDepsCache && lastDepsMapSize === moduleDependencies.size) {
+        return circularDepsCache;
     }
     
-    return result
+    const result = new Map()
+    const visited = new Map(); // 0 = unvisited, 1 = in progress, 2 = completed
+    const path = []
+    
+    function dfs(file) {
+        if (visited.get(file) === 1) {
+            // Found cycle
+            const cycle = [...path.slice(path.indexOf(file)), file]
+            const cycleKey = cycle.join(' -> ')
+            if (!result.has(cycleKey)) {
+                result.set(cycleKey, cycle)
+            }
+            return
+        }
+        
+        if (visited.get(file) === 2) return
+        
+        visited.set(file, 1); // Mark as in progress
+        path.push(file)
+        
+        const deps = moduleDependencies.get(file) || []
+        for (const dep of deps) {
+            dfs(dep)
+        }
+        
+        path.pop()
+        visited.set(file, 2); // Mark as completed
+    }
+    
+    for (const file of moduleDependencies.keys()) {
+        if (!visited.has(file)) {
+            dfs(file)
+        }
+    }
+    
+    // Cache the result
+    circularDepsCache = result;
+    lastDepsMapSize = moduleDependencies.size;
+    return result;
 }
-
-/**
- * Trace dependencies from entry point
+/** * Trace dependencies from entry point
  */
 export async function traceDependenciesFromEntry(entryPath, sourceDir, visited = new Set()) {
     // Resolve entry path to absolute path
@@ -194,7 +209,7 @@ export async function checkUnusedPackageDependencies(sourceDir) {
     const allContent = await Promise.all(
         files.map(async file => {
             try {
-                return await readFile(file, 'utf8')
+                return await getCachedFileContent(file)
             } catch (error) {
                 output.error(`Error reading file ${file}: ${error.message}`)
                 return ''
@@ -205,26 +220,20 @@ export async function checkUnusedPackageDependencies(sourceDir) {
     // Join all content for simpler checking
     const combinedContent = allContent.join('\n')
     
-    // Check each dependency
+    // Pattern templates
+    const patternTemplates = [
+        dependency => new RegExp(`import\\s+(?:[\\w\\s{},*]+from\\s+)?['"]${dependency}(?:[\\w\\s-./]*)['"]`, 'g'),
+        dependency => new RegExp(`import\\s+[\\w\\s]+\\s+from\\s+['"]${dependency}(?:[\\w\\s-./]*)['"]`, 'g'),
+        dependency => new RegExp(`import\\s+\\*\\s+as\\s+[\\w\\s]+\\s+from\\s+['"]${dependency}(?:[\\w\\s-./]*)['"]`, 'g'),
+        dependency => new RegExp(`require\\s*\\(\\s*['"]${dependency}(?:[\\w\\s-./]*)['"]\\s*\\)`, 'g'),
+        dependency => new RegExp(`import\\s*\\(['"]${dependency}(?:[\\w\\s-./]*)['"]\\)`, 'g'),
+        dependency => new RegExp(`['"]${dependency}(?:[\\w\\s-./]*)['"]`, 'g')
+    ]
+    
     for (const dependency of dependencies) {
-        // Different patterns to match dependencies
-        const importPatterns = [
-            // ES6 named imports
-            new RegExp(`import\\s+(?:[\\w\\s{},*]+from\\s+)?['"]${dependency}(?:[\\w\\s-./]*)['"]`, 'g'),
-            // ES6 default imports
-            new RegExp(`import\\s+[\\w\\s]+\\s+from\\s+['"]${dependency}(?:[\\w\\s-./]*)['"]`, 'g'),
-            // ES6 namespace imports
-            new RegExp(`import\\s+\\*\\s+as\\s+[\\w\\s]+\\s+from\\s+['"]${dependency}(?:[\\w\\s-./]*)['"]`, 'g'),
-            // CommonJS require
-            new RegExp(`require\\s*\\(\\s*['"]${dependency}(?:[\\w\\s-./]*)['"]\\s*\\)`, 'g'),
-            // Dynamic imports
-            new RegExp(`import\\s*\\(['"]${dependency}(?:[\\w\\s-./]*)['"]\\)`, 'g'),
-            // Package references in comments or strings
-            new RegExp(`['"]${dependency}(?:[\\w\\s-./]*)['"]`, 'g')
-        ]
-        
-        // Check if dependency is used in any file
-        const isUsed = importPatterns.some(pattern => pattern.test(combinedContent))
+        // Compile patterns once per dependency
+        const patterns = patternTemplates.map(template => template(dependency))
+        const isUsed = patterns.some(pattern => pattern.test(combinedContent))
         
         if (!isUsed) {
             unusedPackageDependencies.add(dependency)
@@ -232,4 +241,29 @@ export async function checkUnusedPackageDependencies(sourceDir) {
     }
     
     return unusedPackageDependencies
+}
+// Improved cache management
+const fileContentCache = new Map();
+
+export async function getCachedFileContent(filePath) {
+    if (!fileContentCache.has(filePath)) {
+        try {
+            // If cache is too large, remove oldest entries
+            if (fileContentCache.size >= MAX_CACHE_SIZE) {
+                const oldestKey = fileContentCache.keys().next().value;
+                fileContentCache.delete(oldestKey);
+            }
+            fileContentCache.set(filePath, await readFile(filePath, 'utf8'));
+        } catch (error) {
+            output.error(`Error reading file ${filePath}: ${error.message}`);
+            fileContentCache.set(filePath, '');
+        }
+    }
+    return fileContentCache.get(filePath);
+}
+
+// Then use this in other functions instead of readFile directly
+
+export function clearFileContentCache() {
+    fileContentCache.clear()
 }
