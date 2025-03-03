@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.5.0](https://github.com/billchurch/treetracr/compare/v1.4.0...v1.5.0) (2025-03-03)
+
+
+### Features
+
+* enhance import extraction with AST parsing and regex fallback ([a79442d](https://github.com/billchurch/treetracr/commit/a79442d4125147348a10a3e3c2815055c8ffb136))
+* improve performance with caching and optimize dependency analysis ([13d83e1](https://github.com/billchurch/treetracr/commit/13d83e13a26762c5a37202ecd81646077b66bd26))
+* improve unused package dependency detection ([62e2cf1](https://github.com/billchurch/treetracr/commit/62e2cf1a5ba743b64e5669a651222ae78b673dc5))
+
+
+### Bug Fixes
+
+* improve import path resolution and add warning for unresolved imports ([956bf60](https://github.com/billchurch/treetracr/commit/956bf60c046a719d99d41f23c964e569db4e1800))
+
 ## [1.4.0](https://github.com/billchurch/treetracr/compare/v1.3.0...v1.4.0) (2025-03-02)
 
 
