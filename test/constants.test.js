@@ -11,7 +11,16 @@ test('IMPORT_PATTERNS should match various import styles', () => {
   const testCases = [
     { code: 'import foo from "./bar"', match: './bar' },
     { code: 'import { foo } from "./bar"', match: './bar' },
+    { code: 'import * as foo from "./bar"', match: './bar' },
+    { code: 'import "./bar"', match: './bar' },
+    { code: 'export { foo } from "./bar"', match: './bar' },
+    { code: 'export * from "./bar"', match: './bar' },
     { code: 'const foo = require("./bar")', match: './bar' },
+    { code: 'let foo = require("./bar")', match: './bar' },
+    { code: 'var foo = require("./bar")', match: './bar' },
+    { code: 'const { foo, bar } = require("./bar")', match: './bar' },
+    { code: 'require("./bar")', match: './bar' },
+    { code: 'someFunction(require("./bar"))', match: './bar' },
     { code: 'const foo = await import("./bar")', match: './bar' }
   ];
 
@@ -28,7 +37,6 @@ test('IMPORT_PATTERNS should match various import styles', () => {
     assert.ok(found, `Pattern should match: ${code}`);
   });
 });
-
 test('TEST_PATTERNS should identify test files', () => {
   const testPaths = [
     '/project/src/foo.test.js',

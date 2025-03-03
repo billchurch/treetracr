@@ -1,10 +1,13 @@
 // Patterns to identify imports/requires in files
 export const IMPORT_PATTERNS = [
-    /import\s+(?:[\w\s{},*]+from\s+)?['"]([\.\/][^'"]+)['"]/g,
-    /require\s*\(\s*['"]([\.\/][^'"]+)['"]\s*\)/g,
-    /import\s*\(['"]([\.\/][^'"]+)['"]\)/g  // Dynamic imports
+    /import\s+.*?\s+from\s+['"](\..*?)['"]/g,        // import x from './y'
+    /import\s+['"](\..*?)['"]/g,                      // import './y'
+    /export\s+.*?\s+from\s+['"](\..*?)['"]/g,         // export x from './y'
+    /import\(['"](\..*?)['"]\)/g,                     // import('./y')
+    /require\(\s*['"](\..*?)['"]\s*\)/g,              // require('./y')
+    /(?:const|let|var).*?=\s*require\(\s*['"](\..*?)['"]\s*\)/g, // const x = require('./y')
+    /(?:const|let|var).*?=.*?require\(\s*['"](\..*?)['"]\s*\)/g  // const {x} = require('./y')
 ]
-
 export const TEST_PATTERNS = [
     /\.test\.[jt]sx?$/,
     /\.spec\.[jt]sx?$/,

@@ -1,6 +1,7 @@
 import fs from 'fs'
 import path from 'path'
-import { MAX_CACHE_SIZE, IMPORT_PATTERNS, TEST_PATTERNS, JS_EXTENSIONS } from './constants.js'
+import { parse } from '@babel/parser'
+import { MAX_CACHE_SIZE, TEST_PATTERNS, JS_EXTENSIONS } from './constants.js'
 import { readFile, getPackageJson } from './fileSystem.js'
 import { output } from './output.js'
 
@@ -52,34 +53,120 @@ export function normalizePath(basePath, importPath) {
     
     return fullPath
 }
-/**
- * Extract imports from a file
+ /**
+ * Extract imports from a file using AST parsing
  */
 export async function getImportsFromFile(filePath) {
     try {
         const content = await getCachedFileContent(filePath)
         const imports = new Set()
-
-        for (const pattern of IMPORT_PATTERNS) {
-            let match
-            const patternCopy = new RegExp(pattern.source, pattern.flags)
-            while ((match = patternCopy.exec(content)) !== null) {
-                const importPath = match[1]
-                // Only consider local imports (starting with ./ or ../)
-                if (importPath.startsWith('.')) {
+        
+        if (!content.trim()) return []
+        
+        try {
+            const ast = parse(content, {
+                sourceType: 'module',
+                plugins: ['jsx', 'typescript', 'exportDefaultFrom', 'dynamicImport'],
+                errorRecovery: true
+            })
+            
+            // Function to process import paths
+            const processImportPath = (importPath) => {
+                if (importPath && typeof importPath === 'string' && importPath.startsWith('.')) {
                     const normalizedPath = normalizePath(filePath, importPath)
                     imports.add(normalizedPath)
                 }
             }
+            
+            // Walk AST nodes
+            function visitNode(node) {
+                // Handle standard imports: import x from 'y'
+                if (node.type === 'ImportDeclaration' && node.source?.value) {
+                    processImportPath(node.source.value)
+                }
+                
+                // Handle re-exports: export x from 'y'
+                else if (node.type === 'ExportNamedDeclaration' && node.source?.value) {
+                    processImportPath(node.source.value)
+                }
+                
+                // Handle bare require calls: require('./module')
+                else if (node.type === 'CallExpression' && 
+                          node.callee?.name === 'require' && 
+                          node.arguments?.[0]?.type === 'StringLiteral') {
+                    processImportPath(node.arguments[0].value)
+                }
+                
+                // Handle dynamic imports: import('./module')
+                else if (node.type === 'CallExpression' && 
+                          node.callee?.type === 'Import' && 
+                          node.arguments?.[0]?.type === 'StringLiteral') {
+                    processImportPath(node.arguments[0].value)
+                }
+                
+                // Handle variable declarations with requires: const x = require('./module')
+                else if (node.type === 'VariableDeclaration') {
+                    node.declarations.forEach(declaration => {
+                        if (declaration.init?.type === 'CallExpression' && 
+                            declaration.init.callee?.name === 'require' && 
+                            declaration.init.arguments?.[0]?.type === 'StringLiteral') {
+                            processImportPath(declaration.init.arguments[0].value)
+                        }
+                    })
+                }
+                
+                // Recursively process all child nodes
+                for (const key in node) {
+                    const child = node[key]
+                    if (child && typeof child === 'object') {
+                        if (Array.isArray(child)) {
+                            child.forEach(item => {
+                                if (item && typeof item === 'object') {
+                                    visitNode(item)
+                                }
+                            })
+                        } else {
+                            visitNode(child)
+                        }
+                    }
+                }
+            }
+            
+            // Start AST traversal
+            if (ast.program?.body) {
+                ast.program.body.forEach(visitNode)
+            }
+        } catch (parseError) {
+            output.warning(`AST parsing failed for $src/analyzer.js, falling back to regex: ${parseError.message}`)
+            return fallbackGetImports(content, filePath)
         }
-
+        
         return Array.from(imports)
     } catch (error) {
-        output.error(`Error reading file $src/analyzer.js: ${error.message}`)
+        output.error(`Error processing file $src/analyzer.js: ${error.message}`)
         return []
     }
 }
+/**
+ * Fallback method using regex to extract imports when AST parsing fails
+ */
+function fallbackGetImports(content, filePath) {
+    const imports = new Set()
 
+    for (const pattern of IMPORT_PATTERNS) {
+        let match
+        const patternCopy = new RegExp(pattern.source, pattern.flags)
+        while ((match = patternCopy.exec(content)) !== null) {
+            const importPath = match[1]
+            if (importPath.startsWith('.')) {
+                const normalizedPath = normalizePath(filePath, importPath)
+                imports.add(normalizedPath)
+            }
+        }
+    }
+
+    return Array.from(imports)
+}
 /**
  * Build dependency and reference maps
  */
