@@ -41,9 +41,13 @@ export function normalizePath(basePath, importPath) {
         }
     }
 
+    // If we get here, no valid file was found
+    if (!fs.existsSync(fullPath)) {
+        output.warning(`Could not resolve import: ${importPath} from ${basePath}`)
+    }
+    
     return fullPath
 }
-
 /**
  * Extract imports from a file
  */
