@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.5.1](https://github.com/billchurch/treetracr/compare/v1.5.0...v1.5.1) (2025-03-04)
+
+
+### Bug Fixes
+
+* trigger new release-please cycle ([8de522e](https://github.com/billchurch/treetracr/commit/8de522ea146f4178fb511a6a106edd9d6830ed1f))
+* trying to get this version right after rebase to re-sign. ([3b202d5](https://github.com/billchurch/treetracr/commit/3b202d5699760e26a8c87b95ae456c38835a132b))
+* version issues ([d2689e5](https://github.com/billchurch/treetracr/commit/d2689e57ce60809d483720f27867655c63b54d1a))
+
 ## [1.5.0](https://github.com/billchurch/treetracr/compare/v1.4.0...v1.5.0) (2025-03-03)
 
 
