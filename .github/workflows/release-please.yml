@@ -17,7 +17,7 @@ jobs:
         id: release
         with:
           release-type: node
-
+          bootstrap-sha: 80b151e77b4c676b1b3c684a0e38ef061c835fab  # The first 1.0.0 release
       # Only proceed with the following steps if a release was created
       - uses: actions/checkout@v4
         if: ${{ steps.release.outputs.release_created }}
