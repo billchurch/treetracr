@@ -10,5 +10,7 @@
       "release-as": "1.5.1",
       "last-release-sha": "3d185ffd84e0314bf7a09e4e08e1d32737d4b83a"
     }
-  }
+  },
+  "release-search-depth": 100,
+  "include-v-in-tag": true
 }
