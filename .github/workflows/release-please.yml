@@ -17,7 +17,8 @@ jobs:
         id: release
         with:
           release-type: node
-      # Only proceed with the following steps if a release was created
+          command: github-release
+          release-as: "1.5.1"      # Only proceed with the following steps if a release was created
       - uses: actions/checkout@v4
         if: ${{ steps.release.outputs.release_created }}
 
