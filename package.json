@@ -1,6 +1,6 @@
 {
   "name": "treetracr",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A JavaScript/TypeScript dependency analyzer that traces module relationships and identifies unused code",
   "main": "index.js",
   "type": "module",
