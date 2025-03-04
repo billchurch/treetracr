@@ -1,5 +1,31 @@
 # Changelog
 
+## [1.1.0](https://github.com/billchurch/treetracr/compare/v1.0.0...v1.1.0) (2025-03-04)
+
+
+### Features
+
+* add '.jest' extension to JS_EXTENSIONS ([a0d16b4](https://github.com/billchurch/treetracr/commit/a0d16b4eb880bb11f2cb300a94f45e190002be51))
+* add CI integration and CLI flags for error control ([92fe3ef](https://github.com/billchurch/treetracr/commit/92fe3ef2037de6b3cff2573b73c6692059ef2733))
+* add test directory option and test file analysis ([03b1aff](https://github.com/billchurch/treetracr/commit/03b1aff5d04657f56dc75e7b4ccfce9c1056a370))
+* auto-detect entry point from package.json ([0bb8dbe](https://github.com/billchurch/treetracr/commit/0bb8dbef8092f5d8b6657a613066a2b96dc400d7))
+* detect and report unused package.json dependencies ([348295c](https://github.com/billchurch/treetracr/commit/348295c2911a50dcc1be9ef3d0aaad3a29d69518))
+* detect and visualize circular dependencies ([5d55c39](https://github.com/billchurch/treetracr/commit/5d55c3990ec9c440d5a41f7c39c973dbbeab4f4b))
+* enhance CLI output with dedicated module ([4f2822d](https://github.com/billchurch/treetracr/commit/4f2822dd255b689c0ff63a4d9eb5e85b98c445de))
+* enhance import extraction with AST parsing and regex fallback ([54834a9](https://github.com/billchurch/treetracr/commit/54834a97445a23e8480cc5ef98898e5764bc06b7))
+* enhance output with boxen and ora ([e5b6dcc](https://github.com/billchurch/treetracr/commit/e5b6dcc383a1833b9dde459dfe1c1b51bef533d5))
+* improve performance with caching and optimize dependency analysis ([38e1335](https://github.com/billchurch/treetracr/commit/38e13350205b9e966960974e3ff69d80be29cb2b))
+* improve unused package dependency detection ([7d5d07f](https://github.com/billchurch/treetracr/commit/7d5d07fb4b3baa8e17e0037a44b2b05d2061b476))
+
+
+### Bug Fixes
+
+* improve import path resolution and add warning for unresolved imports ([e5b7d43](https://github.com/billchurch/treetracr/commit/e5b7d43712c3c4173d52ace394c6a8f795475753))
+* include src/ directory in published package ([091b273](https://github.com/billchurch/treetracr/commit/091b27396baf040462f36a3e62ce1fe7d5e5d230))
+* trigger new release-please cycle ([8de522e](https://github.com/billchurch/treetracr/commit/8de522ea146f4178fb511a6a106edd9d6830ed1f))
+* trying to get this version right after rebase to re-sign. ([3b202d5](https://github.com/billchurch/treetracr/commit/3b202d5699760e26a8c87b95ae456c38835a132b))
+* version issues ([d2689e5](https://github.com/billchurch/treetracr/commit/d2689e57ce60809d483720f27867655c63b54d1a))
+
 ## 1.0.0 (2025-03-03)
 
 
